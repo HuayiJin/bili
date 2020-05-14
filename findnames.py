@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-import re
 import os
-import pandas as pd
-import numpy
 import json
-import urllib
 import requests
 import time
+import pandas as pd
+from myapp import get_names
 
 
 class User:
@@ -17,54 +15,8 @@ class User:
         self.name = name
 
 
-def readfile2018(filepath):
-    cwdpath = os.getcwd()
-    # Read a file
-    with open(cwdpath + filepath, "rt", encoding='utf-8') as in_file:
-        text = in_file.read()
-        urls = re.findall('https://space.bilibili.com/\\d+', text)
-        # print(urls)
-        names = re.findall('<strong>.+?</strong>', text)
-
-        userlist = []
-        for i in range(100):
-            # print(urls[i + 1] + '  ' + names[i])
-            name = names[i][8:-9]
-            # print(name)
-            mid = urls[i + 1][27:]
-            # print(mid)
-            userlist.append((mid, name))
-    return userlist
-
-
-def readfile2019(file_path):
-    cwd_path = os.getcwd()
-    # Read a file
-    with open(cwd_path + file_path, "rt", encoding='utf-8') as in_file:
-        text = in_file.read()
-        urls = re.findall('//space.bilibili.com/\\d+', text)
-        # print(len(urls))
-        names = re.findall('span class="vip-name-check.+?</span>', text)
-        # print(len(names))
-        userlist = []
-        for i in range(100):
-            mid = urls[2 * i][21:]
-            url = 'https:' + urls[2 * i]
-            name = re.search('>.+?<', names[i]).group()[1:-1]
-            userlist.append((mid, name))
-    return userlist
-
-
-def request_get(url, para):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) \
-        Chrome/54.0.2840.99 Safari/537.36"}
-
-    return requests.get(url, params=para, headers = headers)
-
-
+# 本函数接受b站up主的mid号，请求api，根据其关注者的总数多次请求不同的pn，将结果暂存于文件
 def request_follow(mid, dir):
-    # 本函数接受b站up主的mid号，请求api，根据其关注者的总数多次请求不同的pn，将结果暂存于文件
     cur_pn = 1
     default_url = "https://api.bilibili.com/x/relation/followings?"
     para = {'vmid': mid,
@@ -103,6 +55,85 @@ def request_follow(mid, dir):
 
     return mid_list
 
+# 本函数接受b站up主的mid号，请求api，将结果暂存于文件
+# 获取up主的热门视频，如果视频日期晚于2018年，则再请求30条（一页）直到请求到无返回。
+def find_videos(mid):
+    cur_pn = 1
+    default_url = "https://api.bilibili.com/x/space/arc/search?"
+    para = {'mid': mid,
+            'order': 'pubdate',
+            'tid': 0,
+            'ps': 30,
+            'pn': cur_pn}
+    response = request_get(default_url, para)
+    response.encoding = 'utf-8'
+    # 解析收到的json
+    all_videos = json.loads(response.text)
+
+    tlist = all_videos['data']['list']['tlist']
+    vlist = all_videos['data']['list']['vlist']
+    aid_list = []
+
+    for videos in vlist:
+        aid_list.append(videos['aid'])
+
+    while vlist[-1]['created'] > 1514736000:
+        # 本页最后的视频晚于18年发布，追溯更多页
+        cur_pn += 1
+        time.sleep(1)
+
+        response = request_get(default_url, para)
+        response.encoding = 'utf-8'
+        new_vlist = json.loads(response.text)['data']['list']['vlist']
+
+        if len(new_vlist) < 1:
+            break
+
+        for videos in new_vlist:
+            vlist.append(videos)
+            aid_list.append(videos['aid'])
+
+        if len(vlist) > 100 or cur_pn > 5:
+            break
+
+    with open(os.getcwd() + '\\response\\videos\\' + str(mid), 'a', encoding='utf-8') as f:
+        f.write(str(vlist))
+
+    print(aid_list)
+    return tlist, aid_list
+
+
+# 本函数接受av号作为输入，返回up主的前40条热评中所有的用户id，名字
+def get_replies(aid, mid):
+    replies_list = []
+    reply_member_set = set()
+    default_url = "https://api.bilibili.com/x/v2/reply?"
+
+    for i in range(2):
+        para = {'oid': aid,
+                'type': 1,
+                'pn': i+1,
+                'sort': 2}
+        response = request_get(default_url, para)
+        response.encoding = 'utf-8'
+        # 解析收到的json
+        replies_list += json.loads(response.text)['data']['replies']
+
+    for reply in replies_list:
+        reply_member_set.add((reply['member']['mid'], reply['member']['uname']))
+        if reply['replies'] is not None:
+            for subreply in reply['replies']:
+                reply_member_set.add((subreply['member']['mid'], subreply['member']['uname']))
+
+    print(reply_member_set)
+    return reply_member_set
+
+
+def request_get(url, para):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                             + "Chrome/54.0.2840.99 Safari/537.36"}
+    return requests.get(url, params=para, headers = headers)
+
 
 def find_my_followers(filename):
     with open(os.getcwd() + '\\response\\' + filename, 'r', encoding='utf-8') as f:
@@ -116,31 +147,53 @@ def find_my_followers(filename):
         print(mid_list)
 
 
-def find_followers(mid):
-    # 本函数接受b站up主的mid号，返回其所有关注者的list
-    request_follow()
-
-
 if __name__ == "__main__":
     '''
-    bpu2018 = readfile2018("\\myapp\\BPU2018.html")
-    bpu2019 = readfile2019("\\myapp\\BPU2019_2.html")
-
-    idSet18 = set()
-    idSet19 = set()
-    for i in range(100):
-        idSet18.add(bpu2018[i][1])
-        idSet19.add(bpu2019[i][1])
-
-    pd18 = pd.DataFrame(bpu2018)
-    pd19 = pd.DataFrame(bpu2019)
-    print(pd18)
-    print(idSet18 & idSet19)
+        bpu2018 = get_names.readfile2018("\\myapp\\BPU2018.html")
+        bpu2019 = get_names.readfile2019("\\myapp\\BPU2019_2.html")
+    
+        rawSet18 = set()
+        rawSet19 = set()
+        for i in range(100):
+            rawSet18.add(bpu2018[i])
+            rawSet19.add(bpu2019[i])
+    
+        setAll = rawSet19 | rawSet18
+        setOnly19 = rawSet19 - rawSet18
+        setOnly18 = rawSet18 - rawSet19
+        setBoth = rawSet18 & rawSet19
+    
+        print(setBoth)
+    
+        pdAll = pd.DataFrame(setAll, columns=['mid', 'name'])
+        pdOnly19 = pd.DataFrame(setOnly19, columns=['mid', 'name'])
+        pdBoth = pd.DataFrame(setBoth, columns=['mid', 'name'])
+        pdOnly18 = pd.DataFrame(setOnly18, columns=['mid', 'name'])
+        pdGen = pd.concat([pdOnly19, pdBoth, pdOnly18], axis=0, ignore_index=True)
+    
+        pdGen.to_csv("nameset.csv", index=False, encoding='utf-8')
+    
+    
+        # 获取关注信息的http response
+        print(request_follow('32786875', 'bpu19\\'))
+    
+        #find_my_followers('followtest.json')
+    
+        #cur_mid = 10100539
+        #find_followers(cur_mid)
     '''
-    # 获取关注信息的http response
-    print(request_follow('32786875', 'bpu19\\'))
 
-    #find_my_followers('followtest.json')
+    '''
+    with open(os.getcwd() + "\\myapp\\judge.json", 'r', encoding='utf-8') as f:
+        json_file = f.read()
+        judge_result = json.loads(json_file)
+        print(( judge_result['data']['replies'][19]['member']['uname']))
+    '''
 
-    #cur_mid = 10100539
-    #find_followers(cur_mid)
+    #MID = '395936853'
+    #tlist, aid_list = find_videos(MID)
+
+    get_replies(191273)
+    # 获取up主的热门视频，如果视频日期晚于2018年，则再请求30条（一页）直到请求到无返回。
+
+    # 获取up主每个视频的前40条热评。检查其中所有评论人的id，记录于set
