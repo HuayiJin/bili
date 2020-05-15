@@ -3,20 +3,42 @@ import os
 import json
 import requests
 import time
+import re
 import pandas as pd
 from myapp import get_names
 
 
 class User:
-    '''用户类，包括名字，mid，以及主页地址'''
-
     def __init__(self, mid, name):
         self.mid = mid
         self.name = name
 
+        # 字典定义：键为mid，值为用户名
+        self.followers = {}
 
-# 本函数接受b站up主的mid号，请求api，根据其关注者的总数多次请求不同的pn，将结果暂存于文件
-def request_follow(mid, dir):
+        # tlist是作者投稿的主要分区的list，键为分区，值为数量
+        self.tlist = {}
+
+        #视频av号字典，键为aid，值为视频标题
+        self.myVideos = {}
+
+        #热评者id字典，键为mid，值为用户名
+        self.myResponders = {}
+
+        #合作伙伴字典，键为mid，值为用户名
+        self.myCoworkers = {}
+
+
+def request_get(url, para):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                             + "Chrome/54.0.2840.99 Safari/537.36"}
+    return requests.get(url, params=para, headers = headers)
+
+
+# 本函数接受b站up主的mid号，根据其关注者的总数多次请求不同的pn，将结果暂存于文件
+# 本函数返回up主关注人员的mid字典
+# 字典定义：键为mid，值为用户名
+def request_follow(mid):
     cur_pn = 1
     default_url = "https://api.bilibili.com/x/relation/followings?"
     para = {'vmid': mid,
@@ -46,17 +68,20 @@ def request_follow(mid, dir):
             follow_result = json.loads(response.text)
             follow_data_list += follow_result['data']['list']
 
-    mid_list = []
+    follower_dict = {}
     for users in follow_data_list:
-        mid_list.append((users['mid'], users['uname']))
+        follower_dict[ users['mid'] ] = users['uname']
+    # with open(os.getcwd() + '\\response\\follow\\' + str(mid), 'a', encoding='utf-8') as f:
+    #     f.write(str(follower_dict))
 
-    with open(os.getcwd() + '\\response\\follow\\' + dir + str(mid), 'a', encoding='utf-8') as f:
-        f.write(str(mid_list))
+    return follower_dict
 
-    return mid_list
 
-# 本函数接受b站up主的mid号，请求api，将结果暂存于文件
-# 获取up主的热门视频，如果视频日期晚于2018年，则再请求30条（一页）直到请求到无返回。
+# 本函数接受b站up主的mid号，返回up主的热门视频
+# 返回值1为作者投稿分区的字典
+# 返回值2为作者所有视频的字典
+# 返回值3为作者所有合作视频的字典
+# 如果视频日期晚于2018年，则再请求30条（一页）直到请求到无返回。
 def find_videos(mid):
     cur_pn = 1
     default_url = "https://api.bilibili.com/x/space/arc/search?"
@@ -72,10 +97,10 @@ def find_videos(mid):
 
     tlist = all_videos['data']['list']['tlist']
     vlist = all_videos['data']['list']['vlist']
-    aid_list = []
 
-    for videos in vlist:
-        aid_list.append(videos['aid'])
+    t_dict = {}
+    for item in tlist.values():
+        t_dict[ item['name'] ] = item['count']
 
     while vlist[-1]['created'] > 1514736000:
         # 本页最后的视频晚于18年发布，追溯更多页
@@ -91,22 +116,28 @@ def find_videos(mid):
 
         for videos in new_vlist:
             vlist.append(videos)
-            aid_list.append(videos['aid'])
 
-        if len(vlist) > 100 or cur_pn > 5:
+        if len(vlist) > 150 or cur_pn > 5:
             break
 
-    with open(os.getcwd() + '\\response\\videos\\' + str(mid), 'a', encoding='utf-8') as f:
-        f.write(str(vlist))
+    # with open(os.getcwd() + '\\response\\videos\\' + str(mid), 'a', encoding='utf-8') as f:
+    #     f.write(str(vlist))
 
-    print(aid_list)
-    return tlist, aid_list
+    aid_dict = {}
+    union_vid_dict = {}
+    for videos in vlist:
+        # 向字典添加视频
+        aid_dict[ videos['aid'] ] = videos['title']
+        # 提取所有合作视频
+        if videos['is_union_video'] == 1:
+            union_vid_dict[ videos['aid'] ] = videos['title']
+
+    return t_dict, aid_dict, union_vid_dict
 
 
 # 本函数接受av号作为输入，返回up主的前40条热评中所有的用户id，名字
-def get_replies(aid, mid):
+def get_replies(aid):
     replies_list = []
-    reply_member_set = set()
     default_url = "https://api.bilibili.com/x/v2/reply?"
 
     for i in range(2):
@@ -119,32 +150,35 @@ def get_replies(aid, mid):
         # 解析收到的json
         replies_list += json.loads(response.text)['data']['replies']
 
+    reply_dict = {}
     for reply in replies_list:
-        reply_member_set.add((reply['member']['mid'], reply['member']['uname']))
+        reply_dict[ reply['member']['mid'] ] = reply['member']['uname']
         if reply['replies'] is not None:
             for subreply in reply['replies']:
-                reply_member_set.add((subreply['member']['mid'], subreply['member']['uname']))
+                reply_dict[ subreply['member']['mid'] ] = subreply['member']['uname']
 
-    print(reply_member_set)
-    return reply_member_set
-
-
-def request_get(url, para):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                             + "Chrome/54.0.2840.99 Safari/537.36"}
-    return requests.get(url, params=para, headers = headers)
+    return reply_dict
 
 
-def find_my_followers(filename):
-    with open(os.getcwd() + '\\response\\' + filename, 'r', encoding='utf-8') as f:
-        json_file = f.read()
-        follow_result = json.loads(json_file)
-        total_follow_nums = follow_result['data']['total']
+# 本函数接受合作视频的av号作为输入，返回所有合作成员mid
+def get_staff(aid):
+    response = request_get("https://www.bilibili.com/video/av" + str(aid), {})
+    response.encoding = 'utf-8'
 
-        mid_list = []
-        for users in follow_result['data']['list']:
-            mid_list.append((users['mid'], users['uname']))
-        print(mid_list)
+    search_staff = re.search('"staffData":\[.+?\]', response.text)
+    staff_dict = {}
+    if search_staff:
+        try:
+            staffData = json.loads(search_staff.group()[12:])
+
+            print(staffData)
+            if len(staffData) > 1:
+                for staff in staffData:
+                    staff_dict[ staff['mid'] ] = staff['name']
+        except Exception as e:
+            print(e)
+
+    return staff_dict
 
 
 if __name__ == "__main__":
@@ -193,7 +227,13 @@ if __name__ == "__main__":
     #MID = '395936853'
     #tlist, aid_list = find_videos(MID)
 
-    get_replies(191273)
+    # get_replies(191273)
     # 获取up主的热门视频，如果视频日期晚于2018年，则再请求30条（一页）直到请求到无返回。
 
     # 获取up主每个视频的前40条热评。检查其中所有评论人的id，记录于set
+    # print(request_get("https://www.bilibili.com/video/BV1LK411W735", {}).text)
+
+    #get_staff(498082939)
+
+
+
