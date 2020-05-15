@@ -8,31 +8,10 @@ import pandas as pd
 from myapp import get_names
 
 
-class User:
-    def __init__(self, mid, name):
-        self.mid = mid
-        self.name = name
-
-        # 字典定义：键为mid，值为用户名
-        self.followers = {}
-
-        # tlist是作者投稿的主要分区的list，键为分区，值为数量
-        self.tlist = {}
-
-        #视频av号字典，键为aid，值为视频标题
-        self.myVideos = {}
-
-        #热评者id字典，键为mid，值为用户名
-        self.myResponders = {}
-
-        #合作伙伴字典，键为mid，值为用户名
-        self.myCoworkers = {}
-
-
 def request_get(url, para):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                              + "Chrome/54.0.2840.99 Safari/537.36"}
-    return requests.get(url, params=para, headers = headers)
+    return requests.get(url, params=para, headers=headers)
 
 
 # 本函数接受b站up主的mid号，根据其关注者的总数多次请求不同的pn，将结果暂存于文件
@@ -53,7 +32,7 @@ def request_follow(mid):
     total_follow_nums = follow_result['data']['total']
     follow_data_list = follow_result['data']['list']
 
-    if total_follow_nums > 50 :
+    if total_follow_nums > 50:
         # 关注者多于50个，有多页需要请求
         time.sleep(1)
         total_pn = total_follow_nums // 50
@@ -70,7 +49,7 @@ def request_follow(mid):
 
     follower_dict = {}
     for users in follow_data_list:
-        follower_dict[ users['mid'] ] = users['uname']
+        follower_dict[users['mid']] = users['uname']
     # with open(os.getcwd() + '\\response\\follow\\' + str(mid), 'a', encoding='utf-8') as f:
     #     f.write(str(follower_dict))
 
@@ -100,7 +79,7 @@ def find_videos(mid):
 
     t_dict = {}
     for item in tlist.values():
-        t_dict[ item['name'] ] = item['count']
+        t_dict[item['name']] = item['count']
 
     while vlist[-1]['created'] > 1514736000:
         # 本页最后的视频晚于18年发布，追溯更多页
@@ -127,10 +106,10 @@ def find_videos(mid):
     union_vid_dict = {}
     for videos in vlist:
         # 向字典添加视频
-        aid_dict[ videos['aid'] ] = videos['title']
+        aid_dict[videos['aid']] = videos['title']
         # 提取所有合作视频
         if videos['is_union_video'] == 1:
-            union_vid_dict[ videos['aid'] ] = videos['title']
+            union_vid_dict[videos['aid']] = videos['title']
 
     return t_dict, aid_dict, union_vid_dict
 
@@ -143,7 +122,7 @@ def get_replies(aid):
     for i in range(2):
         para = {'oid': aid,
                 'type': 1,
-                'pn': i+1,
+                'pn': i + 1,
                 'sort': 2}
         response = request_get(default_url, para)
         response.encoding = 'utf-8'
@@ -152,15 +131,15 @@ def get_replies(aid):
 
     reply_dict = {}
     for reply in replies_list:
-        reply_dict[ reply['member']['mid'] ] = reply['member']['uname']
+        reply_dict[reply['member']['mid']] = reply['member']['uname']
         if reply['replies'] is not None:
             for subreply in reply['replies']:
-                reply_dict[ subreply['member']['mid'] ] = subreply['member']['uname']
+                reply_dict[subreply['member']['mid']] = subreply['member']['uname']
 
     return reply_dict
 
 
-# 本函数接受合作视频的av号作为输入，返回所有合作成员mid
+# 本函数接受合作视频的av号作为输入，返回所有合作成员mid字典
 def get_staff(aid):
     response = request_get("https://www.bilibili.com/video/av" + str(aid), {})
     response.encoding = 'utf-8'
@@ -171,14 +150,65 @@ def get_staff(aid):
         try:
             staffData = json.loads(search_staff.group()[12:])
 
-            print(staffData)
             if len(staffData) > 1:
                 for staff in staffData:
-                    staff_dict[ staff['mid'] ] = staff['name']
+                    staff_dict[staff['mid']] = staff['name']
         except Exception as e:
             print(e)
 
     return staff_dict
+
+
+class User:
+    def __init__(self, mid, name):
+        self.mid = mid
+        self.name = name
+
+        # 字典定义：键为mid，值为用户名
+        self.followers = {}
+
+        # tlist是作者投稿的主要分区的list，键为分区，值为数量
+        self.tlist = {}
+
+        # 视频av号字典，键为aid，值为视频标题
+        self.myVideos = {}
+
+        # 热评者id字典，键为mid，值为用户名
+        self.myResponders = {}
+
+        # 合作伙伴字典，键为mid，值为用户名
+        self.myCoworkers = {}
+
+    def get_my_follower(self):
+        try:
+            self.followers = request_follow(self.mid)
+        except Exception as e:
+            print(e)
+
+    def get_my_video(self):
+        self.tlist, self.myVideos, union_vid_dict = find_videos(self.mid)
+
+        # 查找我的合作伙伴
+        for aid in union_vid_dict.keys():
+            self.myCoworkers.update(get_staff(aid))
+            time.sleep(0.5)
+
+        # 查找我的评论者
+        for aid in self.myVideos.keys():
+            self.myResponders.update(get_replies(aid))
+            time.sleep(0.5)
+
+    # 以json输出当前状况
+    def print_status(self):
+        status = {
+            'mid': self.mid,
+            'name': self.name,
+            'tlist': self.tlist,
+            'followers': self.followers,
+            'responders': self.myResponders,
+            'coworkers': self.myCoworkers
+        }
+        return json.dumps(status, ensure_ascii=False)
 
 
 if __name__ == "__main__":
@@ -224,8 +254,8 @@ if __name__ == "__main__":
         print(( judge_result['data']['replies'][19]['member']['uname']))
     '''
 
-    #MID = '395936853'
-    #tlist, aid_list = find_videos(MID)
+    # MID = '395936853'
+    # tlist, aid_list = find_videos(MID)
 
     # get_replies(191273)
     # 获取up主的热门视频，如果视频日期晚于2018年，则再请求30条（一页）直到请求到无返回。
@@ -233,7 +263,16 @@ if __name__ == "__main__":
     # 获取up主每个视频的前40条热评。检查其中所有评论人的id，记录于set
     # print(request_get("https://www.bilibili.com/video/BV1LK411W735", {}).text)
 
-    #get_staff(498082939)
+    # get_staff(498082939)
 
-
-
+    cur_mid = 62540916
+    cur_name = "周六野Zoey"
+    print("Start with: ", cur_mid, " user name: ", cur_name)
+    cur_user = User(cur_mid, cur_name)
+    cur_user.get_my_follower()
+    print("Success getting followers!")
+    cur_user.get_my_video()
+    print("Success getting video info!")
+    with open(os.getcwd() + "\\test\\" + str(cur_mid) + ".json", 'a', encoding='utf-8') as f:
+        f.write(cur_user.print_status())
+    print("Success writing into files: ", str(cur_mid))
