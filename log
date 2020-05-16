@@ -1,0 +1,57 @@
+nohup: ignoring input
+No. 1  Start with:  2920960  user name:  大祥哥来了
+Success getting followers!
+searching page  2
+searching page  3
+searching page  4
+this video has come replies  75687866
+this video has come replies  69572336
+this video has come replies  68316751
+Success getting video info!
+Success writing into files:  2920960
+No. 2  Start with:  1950209  user name:  水一大魔王
+Success getting followers!
+searching page  2
+searching page  3
+searching page  4
+searching page  5
+searching page  6
+searching page  7
+searching page  8
+this video has come replies  73938258
+this video has come replies  46178981
+Success getting video info!
+Success writing into files:  1950209
+No. 3  Start with:  216623621  user name:  吃货明3
+Success getting followers!
+searching page  2
+searching page  3
+searching page  4
+searching page  5
+searching page  6
+searching page  7
+searching page  8
+searching page  9
+searching page  10
+searching page  11
+searching page  12
+searching page  13
+searching page  14
+searching page  15
+searching page  16
+searching page  17
+searching page  18
+searching page  19
+searching page  20
+searching page  21
+this video has come replies  73831824
+this video has come replies  51371188
+this video has come replies  48739991
+Traceback (most recent call last):
+  File "bili.py", line 134, in <module>
+    cur_user.get_my_video()
+  File "bili.py", line 74, in get_my_video
+    responder = support.get_replies(aid, self.mid, self.userSet)
+  File "/home/jhy/bili/myapp/support.py", line 179, in get_replies
+    replies_list = json.loads(response.text)['data']['replies']
+TypeError: 'NoneType' object is not subscriptable

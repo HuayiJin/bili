@@ -5,7 +5,7 @@ import time
 import re
 from myapp import support
 
-SLEEP_TIME = 0.3
+SLEEP_TIME = 0.5 
 
 class User:
     def __init__(self, mid, name, userSet, default_dict):
@@ -48,7 +48,7 @@ class User:
         for aid in union_vid_list[1].keys():
             coworker = support.get_staff(aid, self.mid, self.userSet)
             if len(coworker) > 0:
-                print("this video has come coworkers ", aid)
+                print("this video has some coworkers ", aid)
                 for workers in coworker:
                     self.myCoworkers19[workers] += 1
             time.sleep(SLEEP_TIME)
@@ -56,7 +56,7 @@ class User:
         for aid in union_vid_list[2].keys():
             coworker = support.get_staff(aid, self.mid, self.userSet)
             if len(coworker) > 0:
-                print("this video has come coworkers ", aid)
+                print("this video has some coworkers ", aid)
                 for workers in coworker:
                     self.myCoworkers18[workers] += 1
             time.sleep(SLEEP_TIME)
@@ -65,7 +65,7 @@ class User:
         for aid in self.myVideos[1].keys():
             responder = support.get_replies(aid, self.mid, self.userSet)
             if len(responder) > 0:
-                print("this video has come replies ", aid)
+                print("this video has some replies ", aid)
                 for resp in responder:
                     self.myResponders19[resp] += 1
             time.sleep(SLEEP_TIME)
@@ -73,7 +73,7 @@ class User:
         for aid in self.myVideos[2].keys():
             responder = support.get_replies(aid, self.mid, self.userSet)
             if len(responder) > 0:
-                print("this video has come replies ", aid)
+                print("this video has some replies ", aid)
                 for resp in responder:
                     self.myResponders18[resp] += 1
             time.sleep(SLEEP_TIME)

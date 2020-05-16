@@ -176,7 +176,8 @@ def get_replies(aid, myid, userSet):
     response = request_get(default_url, para)
     response.encoding = 'utf-8'
     # 解析收到的json
-    replies_list = json.loads(response.text)['data']['replies']
+    try:
+        replies_list = json.loads(response.text)['data']['replies']
 
     reply_set = set()
     for reply in replies_list:
