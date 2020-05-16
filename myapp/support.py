@@ -176,19 +176,23 @@ def get_replies(aid, myid, userSet):
     response = request_get(default_url, para)
     response.encoding = 'utf-8'
     # 解析收到的json
-    try:
-        replies_list = json.loads(response.text)['data']['replies']
-
+    
+    raw_replies = json.loads(response.text)
     reply_set = set()
-    for reply in replies_list:
-        mid = int(reply['member']['mid'])
-        if mid != myid and mid in userSet:
-            reply_set.add(mid)
-        if reply['replies'] is not None:
-            for subreply in reply['replies']:
-                submid = int(subreply['member']['mid'])
-                if submid != myid and submid in userSet:
-                    reply_set.add(submid)
+
+    try:
+        replies_list = raw_replies['data']['replies']
+        for reply in replies_list:
+            mid = int(reply['member']['mid'])
+            if mid != myid and mid in userSet:
+                reply_set.add(mid)
+            if reply['replies'] is not None:
+                for subreply in reply['replies']:
+                    submid = int(subreply['member']['mid'])
+                    if submid != myid and submid in userSet:
+                        reply_set.add(submid)
+    except Exception as e:
+        print(e)
 
     return reply_set
 

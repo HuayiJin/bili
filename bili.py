@@ -121,12 +121,10 @@ if __name__ == "__main__":
     for ids in default_list:
         default_dict[ids] = 0
     
-    i = 0
-    for id in default_list:
-        i += 1
-        cur_mid = id
-        cur_name = bpu_all[id]
-        print("No.", i, " Start with: ", cur_mid, " user name: ", cur_name)
+    for i in range(len(default_list)):
+        cur_mid = default_list[i]
+        cur_name = bpu_all[cur_mid]
+        print("No.", i+1, " Start with: ", cur_mid, " user name: ", cur_name)
         cur_user = User(cur_mid, cur_name, id_all, default_dict)
         
         cur_user.get_my_follower()
