@@ -3,7 +3,7 @@ import re
 import requests
 import json
 import time
-
+SLEEP_TIME = 0.2
 
 def readfile2018(filepath):
     cwdpath = os.getcwd()
@@ -72,7 +72,7 @@ def request_follow(mid, userSet):
 
     if total_follow_nums > 50:
         # 关注者多于50个，有多页需要请求
-        # time.sleep(1)
+        time.sleep(SLEEP_TIME)
         total_pn = total_follow_nums // 50
         for i in range(total_pn):
             cur_pn += 1
@@ -88,8 +88,6 @@ def request_follow(mid, userSet):
     follower_dict = {}
     for users in follow_data_list:
         mid = int(users['mid'])
-        print(mid)
-        print(users['uname'])
         if mid in userSet:
             follower_dict[mid] = users['uname']
 
@@ -127,7 +125,7 @@ def find_videos(mid):
         # 本页最后的视频晚于18年发布，追溯更多页
         # 直到新页中无视频或者最后的视频早于18年
         cur_pn += 1   
-        time.sleep(1)
+        time.sleep(SLEEP_TIME)
         print("searching page ", cur_pn)
         para = {'mid': mid,
                 'order': 'pubdate',

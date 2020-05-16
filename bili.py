@@ -5,7 +5,7 @@ import time
 import re
 from myapp import support
 
-SLEEP_TIME = 0.5
+SLEEP_TIME = 0.3
 
 class User:
     def __init__(self, mid, name, userSet, default_dict):
@@ -48,6 +48,7 @@ class User:
         for aid in union_vid_list[1].keys():
             coworker = support.get_staff(aid, self.mid, self.userSet)
             if len(coworker) > 0:
+                print("this video has come coworkers ", aid)
                 for workers in coworker:
                     self.myCoworkers19[workers] += 1
             time.sleep(SLEEP_TIME)
@@ -55,15 +56,16 @@ class User:
         for aid in union_vid_list[2].keys():
             coworker = support.get_staff(aid, self.mid, self.userSet)
             if len(coworker) > 0:
+                print("this video has come coworkers ", aid)
                 for workers in coworker:
                     self.myCoworkers18[workers] += 1
             time.sleep(SLEEP_TIME)
 
         # 查找我的评论者
         for aid in self.myVideos[1].keys():
-            print(aid)
             responder = support.get_replies(aid, self.mid, self.userSet)
             if len(responder) > 0:
+                print("this video has come replies ", aid)
                 for resp in responder:
                     self.myResponders19[resp] += 1
             time.sleep(SLEEP_TIME)
@@ -71,6 +73,7 @@ class User:
         for aid in self.myVideos[2].keys():
             responder = support.get_replies(aid, self.mid, self.userSet)
             if len(responder) > 0:
+                print("this video has come replies ", aid)
                 for resp in responder:
                     self.myResponders18[resp] += 1
             time.sleep(SLEEP_TIME)
@@ -118,21 +121,19 @@ if __name__ == "__main__":
     for ids in default_list:
         default_dict[ids] = 0
     
-    # for i in range(len(list_all)):
-    for i in range(1):
-        #cur_mid = list_all[i][0]
-        cur_mid = 14110780
-        #cur_name = list_all[i][1]
-        cur_name = 'TEST'
+    i = 0
+    for id in default_list:
+        i += 1
+        cur_mid = id
+        cur_name = bpu_all[id]
         print("No.", i, " Start with: ", cur_mid, " user name: ", cur_name)
         cur_user = User(cur_mid, cur_name, id_all, default_dict)
         
         cur_user.get_my_follower()
         print("Success getting followers!")
-        '''
         cur_user.get_my_video()
         print("Success getting video info!")
-        '''
+
         with open(os.getcwd() + "/develop/" + str(cur_mid) + ".json", 'a', encoding='utf-8') as f:
             f.write(cur_user.print_status())
         print("Success writing into files: ", str(cur_mid))
