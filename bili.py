@@ -5,7 +5,7 @@ import time
 import re
 from myapp import support
 
-SLEEP_TIME = 0.5 
+SLEEP_TIME = 0  
 
 class User:
     def __init__(self, mid, name, userSet, default_dict):
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     for ids in default_list:
         default_dict[ids] = 0
     
-    for i in range(2, 146):
+    for i in range(8, 146):
         cur_mid = default_list[i]
         cur_name = bpu_all[cur_mid]
         print("No.", i+1, " Start with: ", cur_mid, " user name: ", cur_name)
