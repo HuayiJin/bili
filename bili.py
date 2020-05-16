@@ -8,7 +8,7 @@ from myapp import support
 SLEEP_TIME = 0.5
 
 class User:
-    def __init__(self, mid, name, userSet, default_list):
+    def __init__(self, mid, name, userSet, default_dict):
         self.mid = mid
         self.name = name
         self.userSet = userSet
@@ -23,17 +23,21 @@ class User:
         # 第0，1，2项分别为20年、19年、18年的视频
         self.myVideos = []
 
-        # 热评者id字典列表，键为mid，值为评论次数
-        self.myResponders19 = default_list
-        self.myResponders18 = default_list
+        # 热评者id有序字典，键为mid，值为评论次数
+        self.myResponders19 = {}
+        self.myResponders19.update(default_dict)
+        self.myResponders18 = {}
+        self.myResponders18.update(default_dict)
 
-        # 合作伙伴字典列表，键为mid，值为合作次数
-        self.myCoworkers19 = default_list
-        self.myCoworkers18 = default_list
+        # 合作伙伴有序字典，键为mid，值为合作次数
+        self.myCoworkers19 = {}
+        self.myCoworkers19.update(default_dict)
+        self.myCoworkers18 = {}
+        self.myCoworkers18.update(default_dict)
 
     def get_my_follower(self):
         try:
-            self.followers = support.request_follow(self.mid, userSet)
+            self.followers = support.request_follow(self.mid, self.userSet)
         except Exception as e:
             print(e)
 
@@ -57,6 +61,7 @@ class User:
 
         # 查找我的评论者
         for aid in self.myVideos[1].keys():
+            print(aid)
             responder = support.get_replies(aid, self.mid, self.userSet)
             if len(responder) > 0:
                 for resp in responder:
@@ -88,51 +93,51 @@ class User:
 if __name__ == "__main__":
     bpu2018 = support.readfile2018("/myapp/BPU2018.html")
     bpu2019 = support.readfile2019("/myapp/BPU2019_2.html")
+    bpu_all = {}
+    bpu_all.update(bpu2018)
+    bpu_all.update(bpu2019)
 
-    rawSet18 = set()
-    rawSet19 = set()
-    for i in range(100):
-        rawSet18.add(bpu2018[i])
-        rawSet19.add(bpu2019[i])
+    id18 = bpu2018.keys()
+    id19 = bpu2019.keys()
 
-    setAll = rawSet19 | rawSet18
-    setOnly19 = rawSet19 - rawSet18
-    setOnly18 = rawSet18 - rawSet19
-    setBoth = rawSet18 & rawSet19
+    id_all = id18 | id19
+    id_only19 = id19 - id18
+    id_only18 = id18 - id19
+    id_both = id18 & id19
+
     default_list = []
 
-    for item in setOnly19:
-        default_list.append({item[0]: 0})
-    for item in setBoth:
-        default_list.append({item[0]: 0})
-    for item in setOnly18:
-        default_list.append({item[0]: 0})
+    for item in id_only19:
+        default_list.append(item)
+    for item in id_both:
+        default_list.append(item)
+    for item in id_only18:
+        default_list.append(item)
 
-    print(default_list)
-    list_all = list(setAll)
-    list_all.sort()
-
-    id_set_all = set()
-    for item in list_all:
-        id_set_all.add(item[0])
-
-    print(id_set_all)
+    default_dict = {}
+    for ids in default_list:
+        default_dict[ids] = 0
     
     # for i in range(len(list_all)):
-    for i in range(3):
-        cur_mid = list_all[i][0]
-        cur_name = list_all[i][1]
+    for i in range(1):
+        #cur_mid = list_all[i][0]
+        cur_mid = 14110780
+        #cur_name = list_all[i][1]
+        cur_name = 'TEST'
         print("No.", i, " Start with: ", cur_mid, " user name: ", cur_name)
-        cur_user = User(cur_mid, cur_name, id_set_all, default_list)
+        cur_user = User(cur_mid, cur_name, id_all, default_dict)
+        
         cur_user.get_my_follower()
         print("Success getting followers!")
+        '''
         cur_user.get_my_video()
         print("Success getting video info!")
+        '''
         with open(os.getcwd() + "/develop/" + str(cur_mid) + ".json", 'a', encoding='utf-8') as f:
             f.write(cur_user.print_status())
         print("Success writing into files: ", str(cur_mid))
         time.sleep(SLEEP_TIME)
-
+    
     '''
     pdAll = pd.DataFrame(setAll, columns=['mid', 'name'])
     pdOnly19 = pd.DataFrame(setOnly19, columns=['mid', 'name'])

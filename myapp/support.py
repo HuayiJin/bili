@@ -14,15 +14,15 @@ def readfile2018(filepath):
         # print(urls)
         names = re.findall('<strong>.+?</strong>', text)
 
-        userlist = []
+        userdict = {}
         for i in range(100):
             # print(urls[i + 1] + '  ' + names[i])
             name = names[i][8:-9]
             # print(name)
-            mid = urls[i + 1][27:]
+            mid = int(urls[i + 1][27:])
             # print(mid)
-            userlist.append((mid, name))
-    return userlist
+            userdict[mid] = name
+    return userdict
 
 
 def readfile2019(file_path):
@@ -34,13 +34,13 @@ def readfile2019(file_path):
         # print(len(urls))
         names = re.findall('span class="vip-name-check.+?</span>', text)
         # print(len(names))
-        userlist = []
+        userdict = {}
         for i in range(100):
-            mid = urls[2 * i][21:]
+            mid = int(urls[2 * i][21:])
             url = 'https:' + urls[2 * i]
             name = re.search('>.+?<', names[i]).group()[1:-1]
-            userlist.append((mid, name))
-    return userlist
+            userdict[mid] = name
+    return userdict
 
 
 def request_get(url, para):
@@ -87,8 +87,11 @@ def request_follow(mid, userSet):
 
     follower_dict = {}
     for users in follow_data_list:
-        if users['mid'] in userSet:
-            follower_dict[users['mid']] = users['uname']
+        mid = int(users['mid'])
+        print(mid)
+        print(users['uname'])
+        if mid in userSet:
+            follower_dict[mid] = users['uname']
 
     return follower_dict
 
@@ -134,7 +137,6 @@ def find_videos(mid):
         response = request_get(default_url, para)
         response.encoding = 'utf-8'
         new_vlist = json.loads(response.text)['data']['list']['vlist']
-        print(new_vlist)
 
         if len(new_vlist) < 1:
             break
@@ -180,19 +182,19 @@ def get_replies(aid, myid, userSet):
 
     reply_set = set()
     for reply in replies_list:
-        mid = reply['member']['mid']
+        mid = int(reply['member']['mid'])
         if mid != myid and mid in userSet:
             reply_set.add(mid)
         if reply['replies'] is not None:
             for subreply in reply['replies']:
-                submid = subreply['member']['mid']
+                submid = int(subreply['member']['mid'])
                 if submid != myid and submid in userSet:
                     reply_set.add(submid)
 
     return reply_set
 
 
-# 本函数接受合作视频的av号作为输入，返回所有合作成员mid
+# 本函数接受合作视频的av号作为输入，返回所有合作成员mid(int型)
 # 本函数通过myid和userSet排除本人及非百大up
 def get_staff(aid, myid, userSet):
     response = request_get("https://www.bilibili.com/video/av" + str(aid), {})
@@ -206,7 +208,7 @@ def get_staff(aid, myid, userSet):
 
             if len(staffData) > 1:
                 for staff in staffData:
-                    mid = staff['mid']
+                    mid = int(staff['mid'])
                     if mid != myid and mid in userSet:
                         staff_set.add(mid)
         except Exception as e:
