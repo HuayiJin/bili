@@ -124,11 +124,17 @@ def find_videos(mid):
         # 本页最后的视频晚于18年发布，追溯更多页
         # 直到新页中无视频或者最后的视频早于18年
         cur_pn += 1   
-        # time.sleep(1)
+        time.sleep(1)
         print("searching page ", cur_pn)
+        para = {'mid': mid,
+                'order': 'pubdate',
+                'tid': 0,
+                'ps': 30,
+                'pn': cur_pn}
         response = request_get(default_url, para)
         response.encoding = 'utf-8'
         new_vlist = json.loads(response.text)['data']['list']['vlist']
+        print(new_vlist)
 
         if len(new_vlist) < 1:
             break

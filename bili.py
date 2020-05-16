@@ -57,14 +57,14 @@ class User:
 
         # 查找我的评论者
         for aid in self.myVideos[1].keys():
-            responder = support.get_replies(aid)
+            responder = support.get_replies(aid, self.mid, self.userSet)
             if len(responder) > 0:
                 for resp in responder:
                     self.myResponders19[resp] += 1
             time.sleep(SLEEP_TIME)
 
         for aid in self.myVideos[2].keys():
-            responder = support.get_replies(aid)
+            responder = support.get_replies(aid, self.mid, self.userSet)
             if len(responder) > 0:
                 for resp in responder:
                     self.myResponders18[resp] += 1
