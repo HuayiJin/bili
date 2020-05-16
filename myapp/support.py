@@ -8,7 +8,7 @@ import time
 def readfile2018(filepath):
     cwdpath = os.getcwd()
     # Read a file
-    with open(cwdpath + "\\myapp\\BPU2018.html", "rt", encoding='utf-8') as in_file:
+    with open(cwdpath + "/myapp/BPU2018.html", "rt", encoding='utf-8') as in_file:
         text = in_file.read()
         urls = re.findall('https://space.bilibili.com/\\d+', text)
         # print(urls)
@@ -28,7 +28,7 @@ def readfile2018(filepath):
 def readfile2019(file_path):
     cwd_path = os.getcwd()
     # Read a file
-    with open(cwd_path + "\\myapp\\BPU2019_2.html", "rt", encoding='utf-8') as in_file:
+    with open(cwd_path + "/myapp/BPU2019_2.html", "rt", encoding='utf-8') as in_file:
         text = in_file.read()
         urls = re.findall('//space.bilibili.com/\\d+', text)
         # print(len(urls))
@@ -48,11 +48,14 @@ def request_get(url, para):
                              + "Chrome/54.0.2840.99 Safari/537.36"}
     return requests.get(url, params=para, headers=headers)
 
+'''
+以下所有函数的userSet为百大up主的集合，仅考虑百大之间的互动
+'''
 
-# 本函数接受b站up主的mid号，根据其关注者的总数多次请求不同的pn，将结果暂存于文件
+# 本函数接受b站up主的mid号，根据其关注者的总数多次请求不同的pn
 # 本函数返回up主关注人员的mid字典
 # 字典定义：键为mid，值为用户名
-def request_follow(mid):
+def request_follow(mid, userSet):
     cur_pn = 1
     default_url = "https://api.bilibili.com/x/relation/followings?"
     para = {'vmid': mid,
@@ -69,7 +72,7 @@ def request_follow(mid):
 
     if total_follow_nums > 50:
         # 关注者多于50个，有多页需要请求
-        time.sleep(1)
+        # time.sleep(1)
         total_pn = total_follow_nums // 50
         for i in range(total_pn):
             cur_pn += 1
@@ -84,17 +87,16 @@ def request_follow(mid):
 
     follower_dict = {}
     for users in follow_data_list:
-        follower_dict[users['mid']] = users['uname']
-    # with open(os.getcwd() + '\\response\\follow\\' + str(mid), 'a', encoding='utf-8') as f:
-    #     f.write(str(follower_dict))
+        if users['mid'] in userSet:
+            follower_dict[users['mid']] = users['uname']
 
     return follower_dict
 
 
 # 本函数接受b站up主的mid号，返回up主的热门视频
-# 返回值1为作者投稿分区的字典
-# 返回值2为作者所有视频的字典
-# 返回值3为作者所有合作视频的字典
+# 返回值1为作者最多投稿的分区
+# 返回值2为作者所有视频的字典列表，按照20年，19年，18年分为三个字典
+# 返回值3为作者所有合作视频的字典，按照20年，19年，18年分为三个字典
 # 如果视频日期晚于2018年，则再请求30条（一页）直到请求到无返回。
 def find_videos(mid):
     cur_pn = 1
@@ -114,82 +116,95 @@ def find_videos(mid):
 
     t_dict = {}
     for item in tlist.values():
-        t_dict[item['name']] = item['count']
+        t_dict[item['count']] = item['name']
+    t_dict2 = sorted(t_dict.keys(), reverse=True)
+    area = t_dict[t_dict2[0]]
 
     while vlist[-1]['created'] > 1514736000:
         # 本页最后的视频晚于18年发布，追溯更多页
-        cur_pn += 1
-        time.sleep(1)
-
+        # 直到新页中无视频或者最后的视频早于18年
+        cur_pn += 1   
+        # time.sleep(1)
+        print("searching page ", cur_pn)
         response = request_get(default_url, para)
         response.encoding = 'utf-8'
         new_vlist = json.loads(response.text)['data']['list']['vlist']
 
         if len(new_vlist) < 1:
             break
+        else:
+            vlist += new_vlist
 
-        for videos in new_vlist:
-            vlist.append(videos)
-
-        if len(vlist) > 150 or cur_pn > 5:
+    # [{2020}, {2019}, {2018}]
+    aid_list = [{},{},{}]
+    union_vid_list = [{},{},{}]
+    for videos in vlist:
+        if videos['created'] > 1577808000:
+            year = 0
+        elif videos['created'] > 1546272000:
+            year = 1
+        elif videos['created'] > 1514736000:
+            year = 2
+        else:
             break
 
-    # with open(os.getcwd() + '\\response\\videos\\' + str(mid), 'a', encoding='utf-8') as f:
-    #     f.write(str(vlist))
-
-    aid_dict = {}
-    union_vid_dict = {}
-    for videos in vlist:
         # 向字典添加视频
-        aid_dict[videos['aid']] = videos['title']
+        aid_list[year][videos['aid']] = videos['title']
         # 提取所有合作视频
         if videos['is_union_video'] == 1:
-            union_vid_dict[videos['aid']] = videos['title']
+            union_vid_list[year][videos['aid']] = videos['title']
 
-    return t_dict, aid_dict, union_vid_dict
+    return area, aid_list, union_vid_list
 
 
-# 本函数接受av号作为输入，返回up主的前40条热评中所有的用户id，名字
-def get_replies(aid):
-    replies_list = []
+# 本函数接受av号作为输入，返回up主的前20条热评中百大up的id
+# 本函数使用myid以排除自评
+# 本函数接受userSet作为输入，排除非百大的评论。
+def get_replies(aid, myid, userSet):
     default_url = "https://api.bilibili.com/x/v2/reply?"
 
-    for i in range(2):
-        para = {'oid': aid,
-                'type': 1,
-                'pn': i + 1,
-                'sort': 2}
-        response = request_get(default_url, para)
-        response.encoding = 'utf-8'
-        # 解析收到的json
-        replies_list += json.loads(response.text)['data']['replies']
+    para = {'oid': aid,
+            'type': 1,
+            'pn': 1,
+            'sort': 2}
+    response = request_get(default_url, para)
+    response.encoding = 'utf-8'
+    # 解析收到的json
+    replies_list = json.loads(response.text)['data']['replies']
 
-    reply_dict = {}
+    reply_set = set()
     for reply in replies_list:
-        reply_dict[reply['member']['mid']] = reply['member']['uname']
+        mid = reply['member']['mid']
+        if mid != myid and mid in userSet:
+            reply_set.add(mid)
         if reply['replies'] is not None:
             for subreply in reply['replies']:
-                reply_dict[subreply['member']['mid']] = subreply['member']['uname']
+                submid = subreply['member']['mid']
+                if submid != myid and submid in userSet:
+                    reply_set.add(submid)
 
-    return reply_dict
+    return reply_set
 
 
-# 本函数接受合作视频的av号作为输入，返回所有合作成员mid字典
-def get_staff(aid):
+# 本函数接受合作视频的av号作为输入，返回所有合作成员mid
+# 本函数通过myid和userSet排除本人及非百大up
+def get_staff(aid, myid, userSet):
     response = request_get("https://www.bilibili.com/video/av" + str(aid), {})
     response.encoding = 'utf-8'
 
     search_staff = re.search('"staffData":\[.+?\]', response.text)
-    staff_dict = {}
+    staff_set = set()
     if search_staff:
         try:
             staffData = json.loads(search_staff.group()[12:])
 
             if len(staffData) > 1:
                 for staff in staffData:
-                    staff_dict[staff['mid']] = staff['name']
+                    mid = staff['mid']
+                    if mid != myid and mid in userSet:
+                        staff_set.add(mid)
         except Exception as e:
             print(e)
 
-    return staff_dict
+    return staff_set
 
