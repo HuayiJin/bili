@@ -3,7 +3,7 @@ import re
 import requests
 import json
 import time
-SLEEP_TIME = 0.2
+SLEEP_TIME = 2
 
 def readfile2018(filepath):
     cwdpath = os.getcwd()

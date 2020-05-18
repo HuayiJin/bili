@@ -5,7 +5,7 @@ import time
 import re
 from myapp import support
 
-SLEEP_TIME = 0  
+SLEEP_TIME = 2  
 
 class User:
     def __init__(self, mid, name, userSet, default_dict):
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         cur_user.get_my_video()
         print("Success getting video info!")
 
-        with open(os.getcwd() + "/develop/" + str(cur_mid) + ".json", 'a', encoding='utf-8') as f:
+        with open(os.getcwd() + "/develop2/" + str(cur_mid) + ".json", 'a', encoding='utf-8') as f:
             f.write(cur_user.print_status())
         print("Success writing into files: ", str(cur_mid))
         time.sleep(SLEEP_TIME)
