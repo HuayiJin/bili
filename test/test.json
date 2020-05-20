@@ -1,32 +1,16 @@
-{
-    "1": {
-        "tid": 1,
-        "count": 1,
-        "name": "动画"
-    },
-    "129": {
-        "tid": 129,
-        "count": 79,
-        "name": "舞蹈"
-    },
-    "160": {
-        "tid": 160,
-        "count": 32,
-        "name": "生活"
-    },
-    "3": {
-        "tid": 3,
-        "count": 3,
-        "name": "音乐"
-    },
-    "36": {
-        "tid": 36,
-        "count": 2,
-        "name": "科技"
-    },
-    "4": {
-        "tid": 4,
-        "count": 1,
-        "name": "游戏"
+{'aid': 84620989,
+ 'bvid': 'BV1X7411e74h',
+ 'view': 7786940,
+ 'danmaku': 95831,
+ 'reply': 20790,
+ 'favorite': 447832,
+ 'coin': 1521924,
+ 'share': 80391,
+ 'like': 1130069,
+ 'now_rank': 0,
+ 'his_rank': 1,
+ 'no_reprint': 1,
+ 'copyright': 1,
+ 'argue_msg': '',
+ 'evaluation': ''
     }
-}

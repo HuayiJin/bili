@@ -43,6 +43,23 @@ def readfile2019(file_path):
     return userdict
 
 
+def readfile_hanfu():
+    cwdpath = os.getcwd()
+    # Read a file
+    with open(cwdpath + "/myapp/hanfu.html", "rt", encoding='utf-8') as in_file:
+        text = in_file.read()
+        urls = re.findall('//www\.bilibili\.com/video/BV.+\?', text)
+        users = re.findall('//space\.bilibili\.com/.+\?', text)
+
+        video_list = []
+        user_list = []
+        for i in range(20):
+            video_list.append(urls[i * 2][27:-1])
+            user_list.append(users[i][21:-1])
+
+    return video_list, user_list
+
+
 def request_get(url, para):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                              + "Chrome/54.0.2840.99 Safari/537.36"}
@@ -219,3 +236,55 @@ def get_staff(aid, myid, userSet):
 
     return staff_set
 
+
+def get_video_info(bvid):
+    default_url = "http://api.bilibili.com/x/web-interface/archive/stat?"
+    para = {'bvid': bvid}
+    response = request_get(default_url, para)
+    response.encoding = 'utf-8'
+
+    video_info = json.loads(response.text)
+    return video_info['data']
+
+
+# 本函数接受b站up主的mid号，返回up主的20个热门视频
+def find_videos_simple(mid):
+    LENGTH = 20
+    default_url = "https://api.bilibili.com/x/space/arc/search?"
+    para = {'mid': mid,
+            'order': 'pubdate',
+            'tid': 0,
+            'ps': LENGTH,
+            'pn': 1}
+    response = request_get(default_url, para)
+    response.encoding = 'utf-8'
+    # 解析收到的json
+    all_videos = json.loads(response.text)
+
+    vlist = all_videos['data']['list']['vlist']
+    average_info = {
+        'uploader': mid,
+        'ave_view': 0,
+        'ave_danmaku': 0,
+        'ave_reply': 0,
+        'ave_favorite': 0,
+        'ave_coin': 0,
+        'ave_like': 0
+    }
+    for videos in vlist:
+        temp_info = get_video_info(videos['bvid'])
+        average_info['ave_view']    += temp_info['view']
+        average_info['ave_danmaku'] += temp_info['danmaku']
+        average_info['ave_reply']   += temp_info['reply']
+        average_info['ave_favorite']+= temp_info['favorite']
+        average_info['ave_coin']    += temp_info['coin']
+        average_info['ave_like']    += temp_info['like']
+
+    average_info['ave_view']    /= LENGTH
+    average_info['ave_danmaku'] /= LENGTH
+    average_info['ave_reply']   /= LENGTH
+    average_info['ave_favorite']/= LENGTH
+    average_info['ave_coin']    /= LENGTH
+    average_info['ave_like']    /= LENGTH
+
+    return average_info

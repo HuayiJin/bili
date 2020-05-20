@@ -37,7 +37,7 @@ print("default list start with ", default_list[:3])
 print("default list end with ", default_list[-3:])
 
 rootdir = os.getcwd()
-file_list = os.listdir(rootdir + '\\develop\\')
+file_list = os.listdir(rootdir + '\\develop2\\')
 
 # 存储整个的关注数据
 all_follower_dict = {}
@@ -54,7 +54,7 @@ all_coworker18_dict = {}
 attribute_dict = {}
 
 for file_name in file_list:
-    with open(rootdir + '\\develop\\' + file_name, 'r', encoding='utf-8') as f:
+    with open(rootdir + '\\develop2\\' + file_name, 'r', encoding='utf-8') as f:
         user = json.loads(f.read())
         mid = str(user['mid'])
         name = user['name']
@@ -73,9 +73,27 @@ for file_name in file_list:
             'honor': ''
         }
 
+users = []
+for u in default_list:
+    users.append(int(u))
+
+sum18 = sum19 = 0
+for i in users[:100]:
+    sum19 += i
+for i in users[-100:]:
+    sum18 += i
+
+print(sum19)
+print(sum18)
+
+
+
+
 
 # 146 * 146
-pd_follower = pd.DataFrame(all_follower_dict, columns=default_list, index=default_list).fillna(value=0)
+pd_follower = pd.DataFrame(all_follower_dict, columns=default_list, index=default_list).fillna(value=0).astype(int)
+pd_double_follower = pd_follower.values.T & pd_follower
+print(pd_double_follower)
 
 pd_reply19 = pd.DataFrame(all_reply19_dict, columns=default_list, index=default_list)
 # front 100 * 100
@@ -118,3 +136,7 @@ pd_19cowork19.to_excel(rootdir + "\\result\\" + "cowork19_19.xlsx", index=True, 
 pd_cowork18  .to_excel(rootdir + "\\result\\" + "cowork18.xlsx"  , index=True, header=True)
 pd_18cowork18.to_excel(rootdir + "\\result\\" + "cowork18_18.xlsx", index=True, header=True)
 pd_attribute .to_excel(rootdir + "\\result\\" + "attribute.xlsx", index=True, header=True)
+
+
+pd_double_follower.to_excel(rootdir + "\\result\\" + "double_follower.xlsx"  , index=True, header=True)
+
