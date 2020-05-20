@@ -7,7 +7,7 @@ import pandas as pd
 
 from myapp import support
 
-SLEEP_TIME = 0.5
+SLEEP_TIME = 1 
 
 
 if __name__ == "__main__":
@@ -24,16 +24,14 @@ if __name__ == "__main__":
         hot_video_info_list.append(temp)
         time.sleep(SLEEP_TIME)
 
+    pd_hot = pd.DataFrame(hot_video_info_list)
+    pd_hot.to_excel(rootdir + "\\hanfu\\" + "hot.xlsx", index=True, header=True)
+
     for user in user_list:
         temp = support.find_videos_simple(user)
         print(temp)
         user_info_list.append(temp)
         time.sleep(SLEEP_TIME)
 
-    pd_hot = pd.DataFrame(hot_video_info_list)
     pd_user = pd.DataFrame(user_info_list)
-    print(pd_hot)
-    print(pd_user)
-
-    pd_hot.to_excel(rootdir + "\\hanfu\\" + "hot.xlsx", index=True, header=True)
     pd_user.to_excel(rootdir + "\\hanfu\\" + "user.xlsx", index=True, header=True)

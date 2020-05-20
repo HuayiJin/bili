@@ -249,7 +249,7 @@ def get_video_info(bvid):
 
 # 本函数接受b站up主的mid号，返回up主的20个热门视频
 def find_videos_simple(mid):
-    LENGTH = 20
+    LENGTH = 10 
     default_url = "https://api.bilibili.com/x/space/arc/search?"
     para = {'mid': mid,
             'order': 'pubdate',
